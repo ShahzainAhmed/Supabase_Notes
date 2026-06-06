@@ -220,8 +220,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    const _LogoutPreviewButton(),
                   ],
                 ),
               ),
@@ -322,26 +320,6 @@ class _AuthCard extends StatelessWidget {
         ],
       ),
       child: child,
-    );
-  }
-}
-
-class _LogoutPreviewButton extends StatelessWidget {
-  const _LogoutPreviewButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: () {
-        // TODO: Connect this with Supabase Auth logout later.
-        debugPrint('Logout tapped');
-      },
-      icon: const Icon(Icons.logout_outlined),
-      label: const Text('Logout Preview Button'),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
     );
   }
 }
