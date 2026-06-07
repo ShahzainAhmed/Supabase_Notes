@@ -26,8 +26,10 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (session != null) {
+      print("Session is: $session");
       Get.offAll(() => const HomeScreen());
     } else {
+      print("Session is not live: $session");
       Get.offAll(() => const AuthScreen());
     }
   }
