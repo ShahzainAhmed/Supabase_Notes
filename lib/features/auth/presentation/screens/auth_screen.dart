@@ -33,18 +33,6 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  Future<void> _logout() async {
-    try {
-      await supabase.auth.signOut();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logged out successfully')),
-      );
-      Get.offAll(() => const AuthScreen());
-    } catch (e) {
-      print("Erorr loging out: $e");
-    }
-  }
-
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 

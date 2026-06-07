@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_project/features/splash/presentation/screens/splash_screen.dart';
 
-import 'features/auth/presentation/screens/auth_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
