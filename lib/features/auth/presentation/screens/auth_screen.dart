@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_project/core/supabase_client.dart';
-import 'package:supabase_project/features/auth/presentation/screens/home_screen.dart';
+import 'package:supabase_project/features/home/presentation/screens/home_screen.dart';
 
 import '../widgets/auth_primary_button.dart';
 import '../widgets/auth_text_field.dart';
@@ -59,7 +59,7 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful')),
         );
-        Get.to(() => HomeScreen(onTap: _logout));
+        Get.offAll(() => HomeScreen());
       }
     } catch (e) {
       print("Error logging in: $e");
@@ -97,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google sign-in successful')),
         );
-        Get.to(() => HomeScreen(onTap: _logout));
+        Get.to(() => HomeScreen());
       }
     } catch (e) {
       print("Failed with Google sign-in: $e");
