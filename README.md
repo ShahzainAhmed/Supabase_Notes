@@ -650,3 +650,418 @@ This pattern is used everywhere:
 * Payment Gateways
 * AI APIs
 * Third-party SDKs
+
+---
+
+# Google Authentication with Supabase
+
+## Required Package
+
+Add Google Sign-In package:
+
+```yaml
+google_sign_in: latest_version
+```
+
+Then run:
+
+```bash
+flutter pub get
+```
+
+Purpose:
+
+* Opens Google account selector
+* Retrieves Google user information
+* Retrieves authentication tokens
+* Allows login through Google accounts
+
+---
+
+# Supabase Google Provider Setup
+
+Open:
+
+```text
+Supabase Dashboard
+    ↓
+Authentication
+    ↓
+Providers
+    ↓
+Google
+```
+
+Enable:
+
+```text
+Google Provider
+```
+
+You will be asked to provide:
+
+```text
+Web Client ID
+Android Client ID
+iOS Client ID
+```
+
+Multiple Client IDs can be entered and separated by commas.
+
+---
+
+# Getting Client IDs
+
+Open:
+
+```text
+Google Cloud Console
+    ↓
+Project
+    ↓
+APIs & Services
+    ↓
+Credentials
+```
+
+Create OAuth Clients for:
+
+```text
+Web
+Android
+iOS
+```
+
+Each platform generates its own Client ID.
+
+Example:
+
+```text
+Web Client ID
+Android Client ID
+iOS Client ID
+```
+
+These Client IDs are later used by:
+
+```text
+Flutter
+Supabase
+Google OAuth
+```
+
+to verify application identity.
+
+---
+
+# Environment Variables
+
+Store Client IDs inside `.env`
+
+Example:
+
+```env
+WEB_CLIENT=xxxxxxxx.apps.googleusercontent.com
+
+ANDROID_CLIENT=xxxxxxxx.apps.googleusercontent.com
+
+IOS_CLIENT=xxxxxxxx.apps.googleusercontent.com
+```
+
+Purpose:
+
+* Keeps secrets out of source code
+* Easier environment management
+* Avoids hardcoding credentials
+
+---
+
+# Google Sign-In Flow
+
+```text
+User presses Continue with Google
+            ↓
+Google Account Picker Opens
+            ↓
+User Selects Account
+            ↓
+Google Returns Tokens
+            ↓
+Flutter Receives Tokens
+            ↓
+Supabase Verifies Tokens
+            ↓
+Session Created
+            ↓
+User Logged In
+```
+
+---
+
+# Understanding Google Sign-In Code
+
+## Step 1: Initialize Google Sign-In
+
+```dart
+GoogleSignIn googleSignIn = GoogleSignIn.instance;
+
+await googleSignIn.initialize(
+  serverClientId: dotenv.env['WEB_CLIENT']!,
+  clientId: Platform.isIOS
+      ? dotenv.env['IOS_CLIENT']!
+      : dotenv.env['ANDROID_CLIENT']!,
+);
+```
+
+Purpose:
+
+* Initializes Google SDK
+* Connects app with Google OAuth credentials
+* Uses platform-specific client IDs
+
+---
+
+## Step 2: Authenticate User
+
+```dart
+GoogleSignInAccount account =
+    await googleSignIn.authenticate();
+```
+
+Purpose:
+
+```text
+Display Google Account Selection Screen
+```
+
+User selects:
+
+```text
+Gmail Account
+```
+
+Google returns:
+
+```text
+GoogleSignInAccount
+```
+
+containing user information.
+
+---
+
+## Step 3: Retrieve ID Token
+
+```dart
+String idToken =
+    account.authentication.idToken ?? '';
+```
+
+Purpose:
+
+```text
+Retrieve Google Identity Token
+```
+
+The ID Token proves:
+
+```text
+Google has authenticated this user
+```
+
+---
+
+## Step 4: Request Authorization
+
+```dart
+final authorization =
+    await account.authorizationClient
+        .authorizationForScopes(
+          ['email', 'profile'],
+        ) ??
+    await account.authorizationClient
+        .authorizeScopes(
+          ['email', 'profile'],
+        );
+```
+
+Purpose:
+
+Request access to:
+
+```text
+Email
+Profile
+```
+
+Google returns:
+
+```text
+Access Token
+```
+
+which allows access to approved user information.
+
+---
+
+## Step 5: Authenticate with Supabase
+
+```dart
+final response =
+    await supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: authorization.accessToken,
+    );
+```
+
+Purpose:
+
+```text
+Send Google Tokens
+          ↓
+Supabase Verifies Tokens
+          ↓
+Create Supabase Session
+          ↓
+Login User
+```
+
+This is where Google Authentication and Supabase Authentication become connected.
+
+---
+
+# Success Check
+
+```dart
+if (response.user != null &&
+    response.session != null)
+```
+
+Purpose:
+
+Verify:
+
+```text
+User Exists
+AND
+Session Exists
+```
+
+If both exist:
+
+```text
+Google Login Successful
+```
+
+---
+
+# Session Concept
+
+After successful login:
+
+```text
+Google
+    ↓
+Supabase
+    ↓
+Session Created
+```
+
+Session allows user to remain logged in.
+
+Without a session:
+
+```text
+Authenticated User ❌
+```
+
+With a session:
+
+```text
+Authenticated User ✅
+```
+
+---
+
+# iOS URL Scheme Issue
+
+Common Error:
+
+```text
+Your app is missing support for the following URL schemes
+```
+
+Reason:
+
+```text
+Google Login Opens Safari
+          ↓
+Google Needs A Way Back To App
+          ↓
+iOS Cannot Find App URL Scheme
+```
+
+Fix:
+
+Add URL Scheme inside:
+
+```text
+ios/Runner/Info.plist
+```
+
+Example:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>
+      com.googleusercontent.apps.xxxxx
+      </string>
+    </array>
+  </dict>
+</array>
+```
+
+Purpose:
+
+```text
+Allow Google To Redirect Back To Flutter App
+```
+
+---
+
+# Interview Question
+
+### Why do we need both Google and Supabase?
+
+Answer:
+
+Google is responsible for authenticating the user and providing identity tokens. Supabase verifies those tokens and creates its own authenticated session, allowing the user to access the application's backend securely.
+
+---
+
+# Biggest Learning
+
+```text
+Google
+    ↓
+Returns Identity Tokens
+    ↓
+Flutter
+    ↓
+Supabase
+    ↓
+Creates Session
+    ↓
+User Logged In
+```
+
+Google proves who the user is.
+
+Supabase creates and manages the application's authenticated session.
