@@ -66,6 +66,44 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _continueWithGoogle() async {
+    try {
+      // Google Sign In Code START
+      GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(
+        serverClientId: dotenv.env['WEB_CLIENT']!,
+        clientId: Platform.isIOS
+            ? dotenv.env['IOS_CLIENT']!
+            : dotenv.env['ANDROID_CLIENT']!,
+      );
+      GoogleSignInAccount account = await googleSignIn.authenticate();
+      String idToken = account.authentication.idToken ?? '';
+      final authorization = await account.authorizationClient
+              .authorizationForScopes(['email', 'profile']) ??
+          await account.authorizationClient
+              .authorizeScopes(['email', 'profile']);
+      // Google Sign In Code END
+
+      final response = await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: authorization.accessToken,
+      );
+      if (response.user != null && response.session != null) {
+        print("Continue with Google Success");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in successful')),
+        );
+        Get.to(() => HomeScreen(onTap: _logout));
+      }
+    } catch (e) {
+      print("Error with Google sign-in: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -198,6 +236,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             onPressed: _isLoginMode ? _login : _signUp,
                           ),
                           const SizedBox(height: 16),
+                          AuthPrimaryButton(
+                            text: "Continue with Google",
+                            onPressed: _continueWithGoogle,
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
