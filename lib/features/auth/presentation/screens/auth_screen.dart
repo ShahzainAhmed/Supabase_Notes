@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_project/core/supabase_client.dart';
 import 'package:supabase_project/features/auth/presentation/screens/home_screen.dart';
 
@@ -49,14 +54,12 @@ class _AuthScreenState extends State<AuthScreen> {
         password: _passwordController.text.toString().trim(),
       );
 
-      if (response.user != null) {
+      if (response.user != null && response.session != null) {
         print("Login successful");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful')),
         );
-        Get.to(() => HomeScreen(
-              onTap: () => _logout(),
-            ));
+        Get.to(() => HomeScreen(onTap: _logout));
       }
     } catch (e) {
       print("Error logging in: $e");
@@ -97,10 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
         Get.to(() => HomeScreen(onTap: _logout));
       }
     } catch (e) {
-      print("Error with Google sign-in: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      print("Failed with Google sign-in: $e");
     }
   }
 
@@ -130,20 +130,6 @@ class _AuthScreenState extends State<AuthScreen> {
       );
     }
   }
-
-  // void _onSubmit() {
-  //   if (!_formKey.currentState!.validate()) return;
-
-  //   final email = _emailController.text.trim();
-  //   final password = _passwordController.text.trim();
-
-  //   // TODO: Connect this with Supabase Auth later.
-  //   // Login: Supabase.instance.client.auth.signInWithPassword(...)
-  //   // Sign up: Supabase.instance.client.auth.signUp(...)
-  //   debugPrint('Email: $email');
-  //   debugPrint('Password: $password');
-  //   debugPrint('Mode: ${_isLoginMode ? 'Login' : 'Sign Up'}');
-  // }
 
   void _onForgotPassword() {
     // TODO: Connect this with Supabase password reset later.
