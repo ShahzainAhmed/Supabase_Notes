@@ -1189,10 +1189,7 @@ should be set after the request is complete.
 To delete a note, I used:
 
 ```dart
-await supabase
-    .from("Notes")
-    .delete()
-    .eq('id', note['id']);
+await supabase.from("Notes").delete().eq('id', note['id']);
 ```
 
 Here:
@@ -1215,14 +1212,8 @@ I added this inside an `IconButton`:
 IconButton(
   onPressed: () async {
     try {
-      await supabase
-          .from("Notes")
-          .delete()
-          .eq('id', note['id']);
-
-      print(
-        "Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",
-      );
+     await supabase.from("Notes").delete().eq('id', note['id']);
+      print("Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",);
     } catch (e) {
       print("Error deleting note: $e");
     }
