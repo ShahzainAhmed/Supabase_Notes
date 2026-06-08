@@ -1065,3 +1065,381 @@ User Logged In
 Google proves who the user is.
 
 Supabase creates and manages the application's authenticated session.
+
+---
+
+# Create Tables & Perform Full CRUD
+
+Today I learned how to create a table in Supabase and perform full CRUD operations from Flutter.
+
+CRUD means:
+
+```text
+C → Create
+R → Read
+U → Update
+D → Delete
+```
+
+In this topic, I worked with a `Notes` table.
+
+---
+
+## Notes Table
+
+The table used in Supabase was:
+
+```text
+Notes
+```
+
+Example columns:
+
+| Column      | Purpose          |
+| ----------- | ---------------- |
+| id          | Unique note id   |
+| title       | Note title       |
+| description | Note description |
+
+---
+
+# Create, Insert Note
+
+To add a new note, I used:
+
+```dart
+await supabase.from("Notes").insert({
+  'title': title.text,
+  'description': description.text,
+});
+```
+
+This inserts a new row into the `Notes` table.
+
+---
+
+# Read, Fetch Notes
+
+To fetch notes from Supabase, I used:
+
+```dart
+final result = await supabase.from("Notes").select();
+```
+
+Then I stored the result in a list:
+
+```dart
+setState(() {
+  notes = result;
+});
+```
+
+After fetching notes, I displayed them using `ListView` and `ListTile`.
+
+```dart
+ListView(
+  children: [
+    for (var note in notes)
+      ListTile(
+        title: Text(note['title'] ?? 'No Title'),
+        subtitle: Text(note['description'] ?? 'No Description'),
+      )
+  ],
+)
+```
+
+---
+
+# Loading Indicator
+
+I used `isLoading` to show a `CircularProgressIndicator` while data is being fetched.
+
+```dart
+body: isLoading
+    ? Center(child: CircularProgressIndicator())
+    : ListView(
+        children: [
+          for (var note in notes)
+            ListTile(
+              title: Text(note['title'] ?? 'No Title'),
+              subtitle: Text(note['description'] ?? 'No Description'),
+            )
+        ],
+      ),
+```
+
+Important point:
+
+```dart
+isLoading = true;
+```
+
+should be set before fetching data.
+
+```dart
+isLoading = false;
+```
+
+should be set after the request is complete.
+
+---
+
+# Delete Note
+
+To delete a note, I used:
+
+```dart
+await supabase
+    .from("Notes")
+    .delete()
+    .eq('id', note['id']);
+```
+
+Here:
+
+```dart
+.eq('id', note['id'])
+```
+
+means delete the row where the table `id` matches the selected note id.
+
+Example:
+
+```text
+Delete note where id = selected note id
+```
+
+I added this inside an `IconButton`:
+
+```dart
+IconButton(
+  onPressed: () async {
+    try {
+      await supabase
+          .from("Notes")
+          .delete()
+          .eq('id', note['id']);
+
+      print(
+        "Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",
+      );
+    } catch (e) {
+      print("Error deleting note: $e");
+    }
+  },
+  icon: Icon(Icons.delete),
+)
+```
+
+---
+
+# Update Note
+
+To update a note, I passed the selected note to another screen.
+
+```dart
+onTap: () => Get.to(() => UpdateNotesScreen(note: note)),
+```
+
+In the update screen, I received the note like this:
+
+```dart
+final Map<String, dynamic> note;
+```
+
+Then I filled the text fields with the existing note data:
+
+```dart
+@override
+void initState() {
+  title.text = widget.note['title'] ?? "";
+  description.text = widget.note['description'] ?? "";
+  super.initState();
+}
+```
+
+To update the note in Supabase, I used:
+
+```dart
+await supabase.from("Notes").update({
+  'title': title.text,
+  'description': description.text,
+}).eq('id', widget.note['id']);
+```
+
+Here:
+
+```dart
+.eq('id', widget.note['id'])
+```
+
+means update only the selected note.
+
+---
+
+# Home Screen Summary
+
+The Home Screen is responsible for:
+
+* Fetching notes
+* Showing notes in a list
+* Opening the Add Notes screen
+* Opening the Update Notes screen
+* Deleting notes
+* Logging out
+
+Important code:
+
+```dart
+Future<void> getNotes() async {
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    final result = await supabase.from("Notes").select();
+
+    setState(() {
+      notes = result;
+    });
+
+    debugPrint("Notes: $notes");
+  } catch (e) {
+    debugPrint("Error fetching notes: $e");
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+```
+
+---
+
+# Add Notes Screen Summary
+
+The Add Notes screen is responsible for inserting a new note into Supabase.
+
+Important code:
+
+```dart
+Future<void> addNote() async {
+  try {
+    setState(() {
+      isLoading = true;
+    });
+
+    await supabase.from("Notes").insert({
+      'title': title.text,
+      'description': description.text,
+    });
+
+    print("Note added: ${title.text}, ${description.text}");
+  } catch (e) {
+    print("Error adding note: $e");
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+```
+
+---
+
+# Update Notes Screen Summary
+
+The Update Notes screen is responsible for editing an existing note.
+
+Important code:
+
+```dart
+Future<void> updateNote() async {
+  try {
+    setState(() {
+      isLoading = true;
+    });
+
+    await supabase.from("Notes").update({
+      'title': title.text,
+      'description': description.text,
+    }).eq('id', widget.note['id']);
+
+    print("Note updated: ${title.text}, ${description.text}");
+  } catch (e) {
+    print("Error updating note: $e");
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+```
+
+---
+
+# Important Concepts Learned
+
+## `.insert()`
+
+Used to add new data into the table.
+
+```dart
+supabase.from("Notes").insert({...});
+```
+
+## `.select()`
+
+Used to fetch data from the table.
+
+```dart
+supabase.from("Notes").select();
+```
+
+## `.delete()`
+
+Used to delete data from the table.
+
+```dart
+supabase.from("Notes").delete();
+```
+
+## `.update()`
+
+Used to update existing data in the table.
+
+```dart
+supabase.from("Notes").update({...});
+```
+
+## `.eq()`
+
+Used to apply a condition.
+
+```dart
+.eq('id', note['id'])
+```
+
+Meaning:
+
+```text
+where id equals note['id']
+```
+
+---
+
+# Final Understanding
+
+Today I learned how to connect Flutter with a Supabase table and perform complete CRUD operations.
+
+I can now:
+
+* Add notes to Supabase
+* Fetch notes from Supabase
+* Display notes in Flutter
+* Delete notes from Supabase
+* Update notes from Flutter
+* Use loading indicators while requests are running
+* Use `.eq()` to target a specific row
+
+This completed the basic notes CRUD flow using Flutter and Supabase.
