@@ -66,7 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 for (var note in notes)
                   ListTile(
-                    onTap: () => Get.to(() => UpdateNotesScreen(note: note)),
+                    onTap: () => Get.to(() => UpdateNotesScreen(
+                        note: note,
+                        onTap: () async {
+                          Get.back();
+                          await getNotes();
+                        })),
                     title: Text(note['title'] ?? 'No Title'),
                     subtitle: Text(note['description'] ?? 'No Description'),
                     trailing: IconButton(

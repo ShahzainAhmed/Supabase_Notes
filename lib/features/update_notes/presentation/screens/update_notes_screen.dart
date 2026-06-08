@@ -4,8 +4,9 @@ import 'package:supabase_project/core/supabase_client.dart';
 import 'package:supabase_project/features/auth/presentation/widgets/auth_primary_button.dart';
 
 class UpdateNotesScreen extends StatefulWidget {
+  final VoidCallback onTap;
   final Map<String, dynamic> note;
-  const UpdateNotesScreen({super.key, required this.note});
+  const UpdateNotesScreen({super.key, required this.note, required this.onTap});
 
   @override
   State<UpdateNotesScreen> createState() => _UpdateNotesScreenState();
@@ -47,6 +48,10 @@ class _UpdateNotesScreenState extends State<UpdateNotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Update Notes"),
+        leading: IconButton(
+          onPressed: widget.onTap,
+          icon: Icon(Icons.arrow_back_ios_new),
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
