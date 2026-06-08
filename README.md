@@ -319,7 +319,7 @@ That answer is the relationship.
 
 ---
 
-# Supabase Authentication
+# Authentication
 
 ## Authentication vs Database
 
@@ -678,7 +678,7 @@ Purpose:
 
 ---
 
-# Supabase Google Provider Setup
+# Google Provider Setup
 
 Open:
 
@@ -1068,7 +1068,7 @@ Supabase creates and manages the application's authenticated session.
 
 ---
 
-# Supabase Database CRUD
+# Database CRUD
 
 ## CRUD Meaning
 
@@ -1745,6 +1745,605 @@ Used loading states
 Used initState for initial fetch
 Used TextEditingController for form input
 Passed note data between screens
+```
+
+---
+
+# Row Level Security (RLS)
+
+## What is RLS?
+
+RLS stands for:
+
+```text
+Row Level Security
+```
+
+It is a Supabase/PostgreSQL security feature used to control which rows a user can:
+
+```text
+SELECT
+INSERT
+UPDATE
+DELETE
+```
+
+Without RLS, users may access more data than they should.
+
+With RLS, we can control access row by row.
+
+---
+
+# Why RLS is Important
+
+Example:
+
+```text
+Ali has 3 notes
+Ahmed has 5 notes
+Shahzain has 2 notes
+```
+
+Without RLS:
+
+```text
+Ali might be able to see Ahmed's notes
+Ahmed might be able to delete Shahzain's notes
+```
+
+With RLS:
+
+```text
+Ali can only see Ali's notes
+Ahmed can only update Ahmed's notes
+Shahzain can only delete Shahzain's notes
+```
+
+RLS protects user data at the database level.
+
+---
+
+# Important RLS Concept
+
+When RLS is enabled on a table:
+
+```text
+Everything is blocked by default
+```
+
+Meaning:
+
+```text
+SELECT ❌
+INSERT ❌
+UPDATE ❌
+DELETE ❌
+```
+
+until policies are created.
+
+So if notes stop fetching, inserting, updating, or deleting after enabling RLS, it usually means:
+
+```text
+Required policy is missing
+```
+
+---
+
+# RLS Flow
+
+```text
+Flutter sends request
+        ↓
+Supabase receives request
+        ↓
+RLS checks policy
+        ↓
+If policy allows → request succeeds
+        ↓
+If policy blocks → request fails or returns no data
+```
+
+---
+
+# user_id Column
+
+For user-based RLS, the table usually needs a `user_id` column.
+
+Example `Notes` table:
+
+| Column      | Purpose              |
+| ----------- | -------------------- |
+| id          | Unique note ID       |
+| title       | Note title           |
+| description | Note description     |
+| user_id     | Stores owner user ID |
+
+`user_id` should store:
+
+```dart
+supabase.auth.currentUser!.id
+```
+
+Example insert:
+
+```dart
+await supabase.from("Notes").insert({
+  'title': title.text,
+  'description': description.text,
+  'user_id': supabase.auth.currentUser!.id,
+});
+```
+
+Meaning:
+
+```text
+This note belongs to the currently logged-in user.
+```
+
+---
+
+# auth.uid()
+
+In Supabase policies:
+
+```sql
+auth.uid()
+```
+
+means:
+
+```text
+ID of the currently logged-in user
+```
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+Allow this action only if logged-in user ID equals row user_id.
+```
+
+---
+
+# SELECT Policy
+
+SELECT policy controls who can read rows.
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+User can only view rows where user_id matches their own auth ID.
+```
+
+Use case:
+
+```text
+Show only my notes
+Do not show other users' notes
+```
+
+---
+
+# INSERT Policy
+
+INSERT policy controls who can create rows.
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+User can insert a row only if user_id is their own auth ID.
+```
+
+Important:
+
+When inserting from Flutter, include:
+
+```dart
+'user_id': supabase.auth.currentUser!.id
+```
+
+Otherwise insert may fail because the policy condition is not satisfied.
+
+---
+
+# UPDATE Policy
+
+UPDATE policy controls who can edit rows.
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+User can only update rows that belong to them.
+```
+
+Update code:
+
+```dart
+await supabase.from("Notes").update({
+  'title': title.text,
+  'description': description.text,
+}).eq('id', widget.note['id']);
+```
+
+The `.eq('id', widget.note['id'])` selects the note by ID.
+
+The RLS policy still checks:
+
+```text
+Does this note belong to the logged-in user?
+```
+
+---
+
+# DELETE Policy
+
+DELETE policy controls who can delete rows.
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+User can only delete rows that belong to them.
+```
+
+Delete code:
+
+```dart
+await supabase
+    .from("Notes")
+    .delete()
+    .eq('id', note['id']);
+```
+
+The `.eq('id', note['id'])` chooses which note to delete.
+
+The RLS policy checks whether the logged-in user owns that row.
+
+---
+
+# Policies by Operation
+
+| Operation | Supabase Method | Policy Needed |
+| --------- | --------------- | ------------- |
+| Create    | insert()        | INSERT        |
+| Read      | select()        | SELECT        |
+| Update    | update()        | UPDATE        |
+| Delete    | delete()        | DELETE        |
+
+If one operation stops working after enabling RLS, check whether that policy exists.
+
+Example:
+
+```text
+Insert works
+Select works
+Delete works
+Update not working
+```
+
+Most likely:
+
+```text
+UPDATE policy is missing
+```
+
+---
+
+# USING vs WITH CHECK
+
+Some policies ask for:
+
+```text
+USING expression
+WITH CHECK expression
+```
+
+## USING
+
+Used to check existing rows.
+
+Commonly used for:
+
+```text
+SELECT
+UPDATE
+DELETE
+```
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+Can this user access this existing row?
+```
+
+## WITH CHECK
+
+Used to check new or changed row data.
+
+Commonly used for:
+
+```text
+INSERT
+UPDATE
+```
+
+Example:
+
+```sql
+auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+Is the new/updated row allowed to be saved?
+```
+
+For beginner user-owned data, both can often use:
+
+```sql
+auth.uid() = user_id
+```
+
+---
+
+# Permissive Policy
+
+Permissive policies behave like an:
+
+```text
+OR operator
+```
+
+Meaning:
+
+```text
+If any permissive policy allows access,
+the action is allowed.
+```
+
+Example:
+
+```text
+Policy 1 allows user because they own the note
+OR
+Policy 2 allows user because they are admin
+```
+
+If either condition is true:
+
+```text
+Access allowed
+```
+
+---
+
+# Restrictive Policy
+
+Restrictive policies behave like an:
+
+```text
+AND operator
+```
+
+Meaning:
+
+```text
+All restrictive policies must allow access,
+otherwise the action is blocked.
+```
+
+Example:
+
+```text
+User must own the note
+AND
+User account must be active
+AND
+Note must not be locked
+```
+
+If one condition fails:
+
+```text
+Access denied
+```
+
+---
+
+# Permissive vs Restrictive
+
+| Policy Type | Logic | Meaning                                 |
+| ----------- | ----- | --------------------------------------- |
+| Permissive  | OR    | Any one policy can allow access         |
+| Restrictive | AND   | All required policies must allow access |
+
+Most beginner apps use:
+
+```text
+Permissive policies
+```
+
+because they are simpler.
+
+---
+
+# Common Beginner RLS Setup for Notes
+
+For a notes app where each user should only access their own notes:
+
+```text
+SELECT → auth.uid() = user_id
+INSERT → auth.uid() = user_id
+UPDATE → auth.uid() = user_id
+DELETE → auth.uid() = user_id
+```
+
+Meaning:
+
+```text
+Logged-in user can only create, read, update, and delete their own notes.
+```
+
+---
+
+# Common RLS Mistakes
+
+## Mistake 1: RLS enabled but no policies
+
+Result:
+
+```text
+App cannot read/write data
+```
+
+Fix:
+
+```text
+Create policies for required operations.
+```
+
+## Mistake 2: Missing user_id column
+
+Result:
+
+```text
+auth.uid() = user_id policy cannot work
+```
+
+Fix:
+
+```text
+Add user_id column to table.
+```
+
+## Mistake 3: Not inserting user_id from Flutter
+
+Result:
+
+```text
+Insert fails or row does not belong to user
+```
+
+Fix:
+
+```dart
+'user_id': supabase.auth.currentUser!.id
+```
+
+## Mistake 4: SELECT works but UPDATE does not
+
+Result:
+
+```text
+Update request blocked
+```
+
+Fix:
+
+```text
+Create UPDATE policy.
+```
+
+## Mistake 5: Wrong policy template
+
+Example:
+
+```text
+Policy with table joins
+```
+
+This is an advanced template.
+
+For simple notes app, use a simple policy like:
+
+```sql
+auth.uid() = user_id
+```
+
+---
+
+# RLS Interview Answer
+
+### What is RLS in Supabase?
+
+RLS stands for Row Level Security. It controls which rows a user can access in a database table. When RLS is enabled, access is blocked by default unless policies are created. Policies define whether a user can select, insert, update, or delete specific rows.
+
+---
+
+# Why use RLS?
+
+RLS is used to protect user data.
+
+Example:
+
+```text
+A user should only see, update, or delete their own notes.
+```
+
+Policy:
+
+```sql
+auth.uid() = user_id
+```
+
+This ensures the logged-in user can only access rows that belong to them.
+
+---
+
+# Biggest RLS Learning
+
+```text
+Authentication tells Supabase who the user is.
+
+RLS decides what data that user is allowed to access.
+```
+
+Example:
+
+```text
+Logged-in user ID
+        ↓
+auth.uid()
+        ↓
+Compare with row user_id
+        ↓
+Allow or block action
 ```
 
 * Use loading indicators while requests are running
