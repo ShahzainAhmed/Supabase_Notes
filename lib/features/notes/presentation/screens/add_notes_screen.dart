@@ -4,8 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_project/features/auth/presentation/widgets/auth_primary_button.dart';
 
 class AddNotesScreen extends StatefulWidget {
-  final VoidCallback onTap;
-  const AddNotesScreen({super.key, required this.onTap});
+  const AddNotesScreen({super.key});
 
   @override
   State<AddNotesScreen> createState() => _AddNotesScreenState();
@@ -41,10 +40,10 @@ class _AddNotesScreenState extends State<AddNotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Add Notes"),
-        leading: IconButton(
-          onPressed: widget.onTap,
-          icon: Icon(Icons.arrow_back_ios_new),
-        ),
+        // leading: IconButton(
+        //   onPressed: widget.onTap,
+        //   icon: Icon(Icons.arrow_back_ios_new),
+        // ),
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),

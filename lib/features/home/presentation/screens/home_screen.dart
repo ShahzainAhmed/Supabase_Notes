@@ -16,6 +16,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List notes = [];
   bool isLoading = false;
 
+  // Real Time Updates with Supabase
+  Future<void> getStreamNotes() async {
+    try {
+      supabase.from("Notes").stream(primaryKey: ['id']).listen((data) {
+        setState(() {
+          notes = data;
+        });
+      });
+    } catch (e) {
+      print("Error streaming notes: $e");
+    }
+  }
+
   Future<void> getNotes() async {
     setState(() {
       isLoading = true;
@@ -37,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    getNotes();
+    getStreamNotes();
     super.initState();
   }
 
@@ -66,12 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 for (var note in notes)
                   ListTile(
-                    onTap: () => Get.to(() => UpdateNotesScreen(
-                        note: note,
-                        onTap: () async {
-                          Get.back();
-                          await getNotes();
-                        })),
+                    onTap: () => Get.to(() => UpdateNotesScreen(note: note)),
                     title: Text(note['title'] ?? 'No Title'),
                     subtitle: Text(note['description'] ?? 'No Description'),
                     trailing: IconButton(
@@ -85,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               "Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",
                             );
 
-                            await getNotes();
+                            await getStreamNotes();
                           } catch (e) {
                             debugPrint("Error deleting note: $e");
                           }
@@ -97,12 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blueGrey,
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () => Get.to(() => AddNotesScreen(
-              onTap: () async {
-                Get.back();
-                await getNotes();
-              },
-            )),
+        onPressed: () => Get.to(() => AddNotesScreen()),
       ),
     );
   }
