@@ -76,11 +76,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .from("Notes")
                                 .delete()
                                 .eq('id', note['id']);
-                            print(
+                            debugPrint(
                               "Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",
                             );
+
+                            await getNotes();
                           } catch (e) {
-                            print("Error deleting note: $e");
+                            debugPrint("Error deleting note: $e");
                           }
                         },
                         icon: Icon(Icons.delete)),
@@ -90,7 +92,12 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blueGrey,
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () => Get.to(() => const AddNotesScreen()),
+        onPressed: () => Get.to(() => AddNotesScreen(
+              onTap: () async {
+                Get.back();
+                await getNotes();
+              },
+            )),
       ),
     );
   }
