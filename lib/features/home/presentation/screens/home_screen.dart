@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:supabase_project/core/supabase_client.dart';
 import 'package:supabase_project/features/auth/presentation/screens/auth_screen.dart';
 import 'package:supabase_project/features/notes/presentation/screens/add_notes_screen.dart';
+import 'package:supabase_project/features/update_notes/presentation/screens/update_notes_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,11 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 for (var note in notes)
                   ListTile(
-                    onTap: () {
-                      supabase.from("Notes").update({
-                        
-                      });
-                    },
+                    onTap: () => Get.to(() => UpdateNotesScreen(note: note)),
                     title: Text(note['title'] ?? 'No Title'),
                     subtitle: Text(note['description'] ?? 'No Description'),
                     trailing: IconButton(
