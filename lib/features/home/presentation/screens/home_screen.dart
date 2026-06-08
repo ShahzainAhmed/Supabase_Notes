@@ -4,39 +4,95 @@ import 'package:supabase_project/core/supabase_client.dart';
 import 'package:supabase_project/features/auth/presentation/screens/auth_screen.dart';
 import 'package:supabase_project/features/notes/presentation/screens/add_notes_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  Future<void> _logout(BuildContext context) async {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List notes = [];
+  bool isLoading = false;
+
+  Future<void> getNotes() async {
+    setState(() {
+      isLoading = true;
+    });
     try {
-      await supabase.auth.signOut();
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logged out successfully')),
-      );
-
-      Get.offAll(() => const AuthScreen());
+      final result = await supabase.from("Notes").select();
+      setState(() {
+        notes = result;
+      });
+      debugPrint("Notes: $notes");
     } catch (e) {
-      debugPrint("Error logging out: $e");
+      debugPrint("Error fetching notes: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
+  }
+
+  @override
+  void initState() {
+    getNotes();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            onPressed: () => _logout(context),
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
+          backgroundColor: Colors.blueGrey,
+          title: const Text('Home', style: TextStyle(color: Colors.white)),
+          actions: [
+            PopupMenuButton(
+                iconColor: Colors.white,
+                itemBuilder: (context) => [
+                      PopupMenuItem(
+                        onTap: () async {
+                          await supabase.auth.signOut();
+                          Get.offAll(() => const AuthScreen());
+                        },
+                        child: Text('Logout'),
+                      ),
+                    ])
+          ]),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                for (var note in notes)
+                  ListTile(
+                    onTap: () {
+                      supabase.from("Notes").update({
+                        
+                      });
+                    },
+                    title: Text(note['title'] ?? 'No Title'),
+                    subtitle: Text(note['description'] ?? 'No Description'),
+                    trailing: IconButton(
+                        onPressed: () async {
+                          try {
+                            await supabase
+                                .from("Notes")
+                                .delete()
+                                .eq('id', note['id']);
+                            print(
+                              "Deleted note: ${note['title'] ?? 'No Title'}, ${note['description'] ?? 'No Description'}",
+                            );
+                          } catch (e) {
+                            print("Error deleting note: $e");
+                          }
+                        },
+                        icon: Icon(Icons.delete)),
+                  )
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.blueGrey,
+        child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => Get.to(() => const AddNotesScreen()),
       ),
     );

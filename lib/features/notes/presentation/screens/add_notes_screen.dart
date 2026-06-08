@@ -54,7 +54,7 @@ class _AddNotesScreenState extends State<AddNotesScreen> {
               controller: description,
               decoration: InputDecoration(hintText: "Description"),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 60.h),
             isLoading
                 ? Center(child: CircularProgressIndicator())
                 : AuthPrimaryButton(text: "Add Note", onPressed: addNote),

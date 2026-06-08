@@ -25,6 +25,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _isLoginMode = true;
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -35,7 +36,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final response = await supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
@@ -54,6 +57,10 @@ class _AuthScreenState extends State<AuthScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -205,10 +212,12 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ],
                           const SizedBox(height: 16),
-                          AuthPrimaryButton(
-                            text: _isLoginMode ? 'Login' : 'Sign Up',
-                            onPressed: _isLoginMode ? _login : _signUp,
-                          ),
+                          _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : AuthPrimaryButton(
+                                  text: _isLoginMode ? 'Login' : 'Sign Up',
+                                  onPressed: _isLoginMode ? _login : _signUp,
+                                ),
                           const SizedBox(height: 16),
                           AuthPrimaryButton(
                             text: "Continue with Google",
