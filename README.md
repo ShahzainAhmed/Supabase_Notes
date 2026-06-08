@@ -2350,3 +2350,837 @@ Allow or block action
 * Use `.eq()` to target a specific row
 
 This completed the basic notes CRUD flow using Flutter and Supabase.
+
+---
+
+# Supabase Realtime Updates
+
+## What is Realtime?
+
+Realtime means:
+
+```text
+Whenever data changes in the database,
+the app receives updates instantly.
+```
+
+Examples:
+
+```text
+Note Added
+Note Updated
+Note Deleted
+```
+
+The UI updates automatically without manually refreshing.
+
+---
+
+# Enabling Realtime
+
+Realtime must be enabled from the Supabase Dashboard.
+
+Steps:
+
+```text
+Supabase Dashboard
+      ↓
+Database
+      ↓
+Replication
+      ↓
+Enable Realtime for Notes table
+```
+
+Once enabled:
+
+```text
+Supabase can send live database changes to Flutter.
+```
+
+---
+
+# Without Realtime
+
+Before learning realtime, notes were loaded using:
+
+```dart
+await supabase.from("Notes").select();
+```
+
+Flow:
+
+```text
+Open Screen
+      ↓
+Fetch Notes Once
+      ↓
+Display Notes
+```
+
+If data changes later:
+
+```text
+Add Note
+Delete Note
+Update Note
+```
+
+UI does not know about the changes automatically.
+
+Need:
+
+```text
+Manual Refresh
+Call getNotes() Again
+```
+
+---
+
+# Traditional Fetch Approach
+
+Code:
+
+```dart
+Future<void> getNotes() async {
+  final result = await supabase.from("Notes").select();
+
+  setState(() {
+    notes = result;
+  });
+}
+```
+
+Flow:
+
+```text
+Database
+      ↓
+select()
+      ↓
+Receive Data
+      ↓
+Store in List
+      ↓
+setState()
+      ↓
+UI Rebuild
+```
+
+This is called:
+
+```text
+One-Time Fetch
+```
+
+because data is fetched only once.
+
+---
+
+# Understanding Streams
+
+A stream is a continuous flow of data.
+
+Think:
+
+```text
+Future
+      ↓
+One Response
+
+Stream
+      ↓
+Many Responses Over Time
+```
+
+Example:
+
+```text
+New Note Added
+      ↓
+Stream Sends Data
+
+Another Note Added
+      ↓
+Stream Sends Data Again
+
+Note Deleted
+      ↓
+Stream Sends Data Again
+```
+
+---
+
+# Supabase Stream
+
+Code:
+
+```dart
+supabase.from("Notes").stream(
+  primaryKey: ['id'],
+)
+```
+
+Meaning:
+
+```text
+Listen to Notes table continuously.
+```
+
+Whenever Notes table changes:
+
+```text
+Insert
+Update
+Delete
+```
+
+new data is automatically emitted.
+
+---
+
+# Why primaryKey is Required?
+
+Code:
+
+```dart
+primaryKey: ['id']
+```
+
+Meaning:
+
+```text
+Each row is uniquely identified by id.
+```
+
+Supabase uses the primary key to determine:
+
+```text
+Which row changed?
+Which row was deleted?
+Which row was updated?
+```
+
+Without a primary key:
+
+```text
+Realtime synchronization becomes unreliable.
+```
+
+---
+
+# First Realtime Approach
+
+Before StreamBuilder, realtime was implemented using:
+
+```dart
+Future<void> getStreamNotes() async {
+  supabase
+      .from("Notes")
+      .stream(primaryKey: ['id'])
+      .listen((data) {
+        setState(() {
+          notes = data;
+        });
+      });
+}
+```
+
+Flow:
+
+```text
+Database Change
+      ↓
+Stream Emits Data
+      ↓
+listen()
+      ↓
+setState()
+      ↓
+UI Rebuild
+```
+
+This approach already provides realtime updates.
+
+---
+
+# Important Learning
+
+Realtime was already working before StreamBuilder.
+
+The following code:
+
+```dart
+stream().listen(...)
+```
+
+was enough.
+
+```text
+Realtime Enabled ✅
+Live Updates ✅
+Automatic UI Updates ✅
+```
+
+So why use StreamBuilder?
+
+---
+
+# Why StreamBuilder?
+
+StreamBuilder is Flutter's built-in widget for working with streams.
+
+Instead of:
+
+```dart
+stream()
+      ↓
+listen()
+      ↓
+setState()
+```
+
+Flutter provides:
+
+```dart
+stream()
+      ↓
+StreamBuilder()
+      ↓
+Automatic UI Rebuild
+```
+
+Result:
+
+```text
+Less Code
+Cleaner Code
+No Manual State Management
+```
+
+---
+
+# StreamBuilder
+
+Code:
+
+```dart
+StreamBuilder(
+  stream: supabase.from("Notes").stream(
+    primaryKey: ['id'],
+  ),
+  builder: (context, snapshot) {
+    ...
+  },
+)
+```
+
+Meaning:
+
+```text
+Listen to Notes stream
+Whenever new data arrives
+Rebuild UI automatically
+```
+
+---
+
+# Snapshot
+
+Inside StreamBuilder:
+
+```dart
+builder: (context, snapshot)
+```
+
+`snapshot` contains everything about the current stream.
+
+Think:
+
+```text
+Current Stream State
+Current Data
+Current Errors
+```
+
+Snapshot provides:
+
+```dart
+snapshot.connectionState
+snapshot.hasError
+snapshot.error
+snapshot.data
+```
+
+---
+
+# connectionState
+
+Code:
+
+```dart
+snapshot.connectionState
+```
+
+Meaning:
+
+```text
+What is the stream doing right now?
+```
+
+Possible values:
+
+```dart
+ConnectionState.none
+ConnectionState.waiting
+ConnectionState.active
+ConnectionState.done
+```
+
+---
+
+# ConnectionState.waiting
+
+Code:
+
+```dart
+if (snapshot.connectionState ==
+    ConnectionState.waiting)
+```
+
+Meaning:
+
+```text
+Stream started
+Still waiting for first data
+```
+
+Show:
+
+```dart
+CircularProgressIndicator()
+```
+
+because data has not arrived yet.
+
+---
+
+# ConnectionState.active
+
+Meaning:
+
+```text
+Stream connected
+Receiving data
+```
+
+This is the state where the app spends most of its time.
+
+Example:
+
+```text
+Notes loaded
+Realtime updates working
+```
+
+Most apps do not check it explicitly.
+
+Why?
+
+Because once data arrives:
+
+```dart
+snapshot.data
+```
+
+already contains the notes.
+
+---
+
+# ConnectionState.done
+
+Meaning:
+
+```text
+Stream closed
+No more events will arrive
+```
+
+Rare for Supabase real-time because the connection usually stays alive.
+
+---
+
+# ConnectionState.none
+
+Meaning:
+
+```text
+No stream attached
+```
+
+Example:
+
+```dart
+StreamBuilder(
+  stream: null,
+)
+```
+
+Usually not encountered in this project.
+
+---
+
+# Error Handling
+
+Code:
+
+```dart
+if (snapshot.hasError)
+```
+
+Meaning:
+
+```text
+Did something go wrong?
+```
+
+Possible reasons:
+
+```text
+No Internet
+Supabase Error
+Permission Error
+RLS Error
+```
+
+Show:
+
+```dart
+snapshot.error.toString()
+```
+
+to display the actual issue.
+
+---
+
+# Accessing Stream Data
+
+Code:
+
+```dart
+final notes = snapshot.data ?? [];
+```
+
+Meaning:
+
+```text
+Take notes from stream.
+```
+
+If data is null:
+
+```text
+Use empty list instead.
+```
+
+Equivalent thinking:
+
+```text
+Data Available?
+      ↓
+Yes → Use Data
+
+No → Use []
+```
+
+---
+
+# Empty State Handling
+
+Code:
+
+```dart
+if (notes.isEmpty)
+```
+
+Meaning:
+
+```text
+Stream works correctly
+But Notes table has no rows
+```
+
+Show:
+
+```dart
+No Notes Found
+```
+
+instead of displaying an empty screen.
+
+---
+
+# Complete Realtime Flow
+
+```text
+HomeScreen Opens
+       ↓
+StreamBuilder Starts Listening
+       ↓
+ConnectionState.waiting
+       ↓
+Show Loader
+
+Supabase Sends Notes
+       ↓
+snapshot.data Updated
+       ↓
+ListView Displays Notes
+
+User Adds Note
+       ↓
+Supabase Updates Table
+       ↓
+Stream Emits New Data
+       ↓
+StreamBuilder Rebuilds
+
+User Deletes Note
+       ↓
+Supabase Updates Table
+       ↓
+Stream Emits New Data
+       ↓
+StreamBuilder Rebuilds
+
+User Updates Note
+       ↓
+Supabase Updates Table
+       ↓
+Stream Emits New Data
+       ↓
+StreamBuilder Rebuilds
+```
+
+---
+
+# Realtime vs StreamBuilder
+
+Important:
+
+```text
+Realtime ≠ StreamBuilder
+```
+
+Realtime:
+
+```text
+Supabase Feature
+```
+
+StreamBuilder:
+
+```text
+Flutter Widget
+```
+
+Realtime provides:
+
+```text
+Live Database Updates
+```
+
+StreamBuilder provides:
+
+```text
+Automatic UI Rebuilds
+```
+
+Together:
+
+```text
+Supabase Realtime
+        +
+StreamBuilder
+        ↓
+Live Updating UI
+```
+
+---
+
+# What Happens If Realtime Is Disabled?
+
+The code still works:
+
+```dart
+StreamBuilder(...)
+```
+
+The app still loads notes.
+
+Reason:
+
+```text
+Stream performs initial fetch.
+```
+
+But:
+
+```text
+Live updates stop working.
+```
+
+Meaning:
+
+```text
+Add Note From Another Device
+      ↓
+No Automatic Update
+
+Delete Note
+      ↓
+No Automatic Update
+
+Update Note
+      ↓
+No Automatic Update
+```
+
+Need refresh or screen rebuild.
+
+---
+
+# Manual Realtime vs StreamBuilder
+
+## Manual Realtime
+
+```dart
+stream()
+   ↓
+listen()
+   ↓
+setState()
+```
+
+Pros:
+
+```text
+Full Control
+```
+
+Cons:
+
+```text
+More Code
+Manual State Management
+Need Subscription Handling
+```
+
+---
+
+## StreamBuilder
+
+```dart
+stream()
+   ↓
+StreamBuilder
+```
+
+Pros:
+
+```text
+Cleaner Code
+Less Boilerplate
+Automatic Rebuilds
+Flutter Recommended Approach
+```
+
+Cons:
+
+```text
+Less Manual Control
+```
+
+---
+
+# Biggest Learning
+
+Think:
+
+```text
+Future
+      ↓
+One Response
+
+Stream
+      ↓
+Continuous Responses
+```
+
+And:
+
+```text
+Realtime
+      ↓
+Supabase sends live changes
+
+StreamBuilder
+      ↓
+Flutter rebuilds UI automatically
+```
+
+Together they create:
+
+```text
+Real-Time Flutter Applications
+```
+
+without manually refreshing data.
+
+---
+
+# Interview Question
+
+### What is the difference between Future and Stream?
+
+Future returns a single value once and then completes.
+
+Example:
+
+```dart
+await supabase.from("Notes").select();
+```
+
+Stream can emit multiple values over time.
+
+Example:
+
+```dart
+supabase.from("Notes").stream(
+  primaryKey: ['id'],
+);
+```
+
+Streams are useful for realtime features because they continuously listen for updates.
+
+---
+
+# Today's Practical Work
+
+Completed:
+
+```text
+Enabled Realtime in Supabase
+Learned Streams
+Learned stream(primaryKey)
+Learned listen()
+Learned StreamBuilder
+Learned Snapshot
+Learned connectionState
+Learned waiting, active, done, none
+Learned Error Handling
+Learned Empty State Handling
+Implemented Realtime Notes List
+Learned Difference Between Realtime and StreamBuilder
+Compared Manual Realtime vs StreamBuilder
+```
